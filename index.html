@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>趣学数学乐园 - Math Fun Hub</title>
+    <!-- Favicon: Cute Math Monster -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='55' r='40' fill='%23FFB347' stroke='%23E67E22' stroke-width='3'/%3E%3Ccircle cx='32' cy='50' r='6' fill='%232D3436'/%3E%3Ccircle cx='68' cy='50' r='6' fill='%232D3436'/%3E%3Cpath d='M 40 68 Q 50 78 60 68' stroke='%232D3436' stroke-width='4' fill='none' stroke-linecap='round'/%3E%3Ctext x='50' y='35' font-family='Arial, sans-serif' font-size='45' font-weight='900' fill='%23FF6B6B' text-anchor='middle'%3E+%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
 </head>
@@ -32,6 +34,12 @@
                 <h2>翻翻乐</h2>
                 <p>翻开卡牌，寻找配对！</p>
                 <div class="card-stats">最高分: <span id="hub-score-memory">0</span></div>
+            </div>
+            <div class="game-card" data-game="catcher">
+                <div class="card-icon">🍎</div>
+                <h2>接苹果</h2>
+                <p>算出答案，接住苹果！</p>
+                <div class="card-stats">最高分: <span id="hub-score-catcher">0</span></div>
             </div>
         </div>
     </div>
@@ -88,6 +96,43 @@
                 <h2>恭喜过关!</h2>
                 <p>你的记忆力真棒！</p>
                 <button id="memory-next-btn">下一关</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 接苹果游戏容器 -->
+    <div id="catcher-screen" class="screen">
+        <button class="back-btn">🏠 返回</button>
+        
+        <div class="game-wrapper">
+            <div class="game-header-bar">
+                <div class="score-box" style="margin-right: auto; background: #FFF3E0; border-color: #FFE0B2;">
+                    <span style="font-size: 1.4rem;" id="catcher-question">2 + 3 = ?</span>
+                </div>
+                <div class="score-box" style="color: #FF6B6B; background: #FFEBEE; border-color: #FFCDD2;">
+                    <span id="catcher-lives">❤️❤️❤️</span>
+                </div>
+                <div class="score-box" style="min-width: 80px; justify-content: center;">
+                    <span id="catcher-goal">0/10</span>
+                </div>
+                <div class="score-box">
+                    <span>⭐</span>
+                    <span id="catcher-score">0</span>
+                </div>
+                <div class="level-box">
+                    Level <span id="catcher-level">1</span>
+                </div>
+            </div>
+            
+            <canvas id="catcher-canvas"></canvas>
+
+            <!-- 接苹果 结算弹窗 -->
+            <div id="catcher-modal" class="modal-overlay hidden">
+                <div class="modal-content">
+                    <h2 id="catcher-modal-title">太棒了!</h2>
+                    <p id="catcher-modal-message">准备好进入下一关了吗？</p>
+                    <button id="catcher-modal-btn">继续</button>
+                </div>
             </div>
         </div>
     </div>

@@ -124,13 +124,18 @@ class StorageManager {
 
     load() {
         const stored = localStorage.getItem(this.key);
-        if (stored) {
-            return JSON.parse(stored);
-        }
-        return {
+        const defaults = {
             bubble: { maxLevel: 1, highScore: 0 },
-            memory: { maxLevel: 1, highScore: 0 }
+            memory: { maxLevel: 1, highScore: 0 },
+            catcher: { maxLevel: 1, highScore: 0 }
         };
+
+        if (stored) {
+            const data = JSON.parse(stored);
+            // Merge defaults to handle new games added later
+            return { ...defaults, ...data };
+        }
+        return defaults;
     }
 
     save() {
@@ -163,11 +168,13 @@ class App {
         this.screens = {
             hub: document.getElementById('hub-screen'),
             bubble: document.getElementById('bubble-screen'),
-            memory: document.getElementById('memory-screen')
+            memory: document.getElementById('memory-screen'),
+            catcher: document.getElementById('catcher-screen')
         };
 
         this.bubbleGame = null;
         this.memoryGame = null;
+        this.catcherGame = null;
 
         this.bindEvents();
         this.updateHubStats();
@@ -197,9 +204,11 @@ class App {
     updateHubStats() {
         const bubbleData = storage.getGameData('bubble');
         const memoryData = storage.getGameData('memory');
+        const catcherData = storage.getGameData('catcher');
         
         document.getElementById('hub-score-bubble').textContent = bubbleData.highScore;
         document.getElementById('hub-score-memory').textContent = memoryData.highScore;
+        document.getElementById('hub-score-catcher').textContent = catcherData.highScore;
     }
 
     showScreen(name) {
@@ -215,12 +224,16 @@ class App {
         } else if (type === 'memory') {
             if (!this.memoryGame) this.memoryGame = new MemoryGame();
             this.memoryGame.start();
+        } else if (type === 'catcher') {
+            if (!this.catcherGame) this.catcherGame = new CatcherGame();
+            this.catcherGame.start();
         }
     }
 
     stopCurrentGame() {
         if (this.bubbleGame) this.bubbleGame.stop();
         if (this.memoryGame) this.memoryGame.stop();
+        if (this.catcherGame) this.catcherGame.stop();
     }
 }
 
@@ -909,6 +922,432 @@ class BubbleGame {
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText(text || val, x, y);
+    }
+}
+
+// --- CATCHER GAME CLASS ---
+
+class CatcherGame {
+    constructor() {
+        this.canvas = document.getElementById('catcher-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        this.width = this.canvas.clientWidth;
+        this.height = this.canvas.clientHeight;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+
+        // Game State
+        this.state = 'idle'; // idle, playing, gameover, levelup
+        this.level = 1;
+        this.score = 0;
+        this.apples = [];
+        this.particles = [];
+        
+        // Question
+        this.questionText = "";
+        this.targetAnswer = 0;
+        
+        // Progress & Lives
+        this.lives = 3;
+        this.progress = 0;
+        this.goal = 10;
+
+        // Basket
+        this.basket = {
+            x: this.width / 2,
+            y: this.height - 80,
+            width: 100,
+            height: 60,
+            color: '#8D6E63'
+        };
+
+        // DOM Elements
+        this.scoreEl = document.getElementById('catcher-score');
+        this.levelEl = document.getElementById('catcher-level');
+        this.questionEl = document.getElementById('catcher-question');
+        this.livesEl = document.getElementById('catcher-lives');
+        this.goalEl = document.getElementById('catcher-goal');
+        this.modal = document.getElementById('catcher-modal');
+        this.modalTitle = document.getElementById('catcher-modal-title');
+        this.modalMsg = document.getElementById('catcher-modal-message');
+        this.modalBtn = document.getElementById('catcher-modal-btn');
+
+        // Event Listeners
+        window.addEventListener('resize', () => this.resizeCanvas());
+        this.canvas.addEventListener('mousemove', (e) => this.handleInput(e));
+        this.canvas.addEventListener('touchmove', (e) => this.handleInput(e));
+        
+        this.modalBtn.addEventListener('click', () => {
+            audio.play('click');
+            this.nextLevel();
+        });
+
+        this.animId = null;
+        this.spawnTimer = 0;
+        this.spawnInterval = 100; // frames
+    }
+
+    start() {
+        if (this.state === 'playing') return;
+        this.resizeCanvas();
+        this.score = 0;
+        this.scoreEl.textContent = 0;
+        this.initLevel(1);
+        this.loop();
+    }
+
+    stop() {
+        this.state = 'idle';
+        cancelAnimationFrame(this.animId);
+    }
+
+    resizeCanvas() {
+        this.width = this.canvas.clientWidth;
+        this.height = this.canvas.clientHeight;
+        this.canvas.width = this.width;
+        this.canvas.height = this.height;
+        this.basket.y = this.height - 80;
+    }
+
+    initLevel(level) {
+        this.level = level;
+        this.levelEl.textContent = level;
+        this.apples = [];
+        this.particles = [];
+        
+        this.lives = 3;
+        this.progress = 0;
+        this.goal = 10; // Catch 10 apples to pass
+        this.updateUI();
+        
+        storage.updateProgress('catcher', level, this.score);
+        
+        // Difficulty
+        this.spawnInterval = Math.max(40, 120 - (level * 5)); // Slower spawn rate curve
+        this.appleSpeed = 1 + (level * 0.1); // Slower fall speed curve
+        
+        this.generateQuestion();
+        this.state = 'playing';
+        this.modal.classList.add('hidden');
+    }
+
+    updateUI() {
+        this.livesEl.textContent = '❤️'.repeat(this.lives);
+        this.goalEl.textContent = `${this.progress}/${this.goal}`;
+    }
+
+    generateQuestion() {
+        // Level 1: Sum <= 5
+        // Level 2: Sum <= 10
+        // Level 3+: Sum <= 10 (faster)
+        const max = this.level === 1 ? 5 : 10;
+        
+        this.targetAnswer = Math.floor(Math.random() * max) + 1;
+        const a = Math.floor(Math.random() * (this.targetAnswer + 1));
+        const b = this.targetAnswer - a;
+        
+        this.questionText = `${a} + ${b} = ?`;
+        this.questionEl.textContent = this.questionText;
+    }
+
+    handleInput(e) {
+        if (this.state !== 'playing') return;
+        e.preventDefault();
+        
+        const rect = this.canvas.getBoundingClientRect();
+        let clientX;
+        
+        if (e.type.includes('touch')) {
+            clientX = e.touches[0].clientX;
+        } else {
+            clientX = e.clientX;
+        }
+        
+        let x = clientX - rect.left;
+        // Clamp
+        x = Math.max(this.basket.width/2, Math.min(this.width - this.basket.width/2, x));
+        this.basket.x = x;
+    }
+
+    loop() {
+        if (this.state !== 'idle') {
+            this.update();
+            this.draw();
+            this.animId = requestAnimationFrame(() => this.loop());
+        }
+    }
+
+    update() {
+        if (this.state !== 'playing') return;
+
+        // Spawn Apples
+        this.spawnTimer++;
+        if (this.spawnTimer >= this.spawnInterval) {
+            this.spawnTimer = 0;
+            this.spawnApple();
+        }
+
+        // Update Apples
+        for (let i = this.apples.length - 1; i >= 0; i--) {
+            const apple = this.apples[i];
+            apple.y += apple.speed;
+            apple.rotation += 0.02;
+
+            // Collision with Floor
+            if (apple.y > this.height + apple.radius) {
+                this.apples.splice(i, 1);
+                continue;
+            }
+
+            // Collision with Basket
+            // Simple Box-Circle collision
+            // Basket Box: (this.basket.x - w/2, this.basket.y) to (this.basket.x + w/2, this.basket.y + h)
+            // Apple: x, y, radius
+            
+            // Check if apple is within vertical range of basket top
+            if (apple.y + apple.radius >= this.basket.y && apple.y - apple.radius <= this.basket.y + this.basket.height) {
+                // Check horizontal
+                if (apple.x >= this.basket.x - this.basket.width/2 && apple.x <= this.basket.x + this.basket.width/2) {
+                    this.handleCatch(apple);
+                    this.apples.splice(i, 1);
+                }
+            }
+        }
+        
+        // Update Particles
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx;
+            p.y += p.vy;
+            p.life--;
+            if (p.life <= 0) this.particles.splice(i, 1);
+        }
+    }
+
+    spawnApple() {
+        const radius = 25;
+        const x = Math.random() * (this.width - 2 * radius) + radius;
+        
+        // Determine Type: Bomb (10% chance, increases with level) or Apple
+        // Level 1: 0%, Level 2: 10%, Level 5: 20%
+        const bombChance = Math.min(0.2, (this.level - 1) * 0.05);
+        let isBomb = Math.random() < bombChance;
+
+        if (isBomb) {
+            this.apples.push({
+                x: x,
+                y: -radius,
+                radius: radius,
+                type: 'bomb',
+                value: '💣',
+                speed: this.appleSpeed * 1.2, // Bombs are faster
+                rotation: 0,
+                color: '#333'
+            });
+            return;
+        }
+        
+        // Determine value: 40% chance to be correct answer
+        let value;
+        if (Math.random() < 0.4) {
+            value = this.targetAnswer;
+        } else {
+            // Random wrong value
+            do {
+                value = Math.floor(Math.random() * 10) + 1; // 1-10
+            } while (value === this.targetAnswer);
+        }
+
+        this.apples.push({
+            x: x,
+            y: -radius,
+            radius: radius,
+            type: 'apple',
+            value: value,
+            speed: this.appleSpeed * (Math.random() * 0.5 + 0.8), // +/- variation
+            rotation: Math.random() * Math.PI * 2,
+            color: '#FF6B6B' // Red Apple
+        });
+    }
+
+    handleCatch(apple) {
+        if (apple.type === 'bomb') {
+            this.createParticles(apple.x, apple.y, '#000');
+            this.handleGameOver();
+            return;
+        }
+
+        if (apple.value === this.targetAnswer) {
+            // Correct
+            audio.play('pop');
+            this.score += 10;
+            this.scoreEl.textContent = this.score;
+            this.progress++;
+            this.createParticles(apple.x, apple.y, '#2ECC71'); // Green particles
+            this.generateQuestion();
+            this.updateUI();
+            
+            // Check Level Up
+            if (this.progress >= this.goal) {
+                 this.handleWin();
+            }
+        } else {
+            // Wrong
+            audio.play('lose');
+            this.createParticles(apple.x, apple.y, '#555'); // Gray particles
+            this.lives--;
+            this.updateUI();
+            
+            if (this.lives <= 0) {
+                this.handleGameOver();
+            }
+        }
+        storage.updateProgress('catcher', this.level, this.score);
+    }
+    
+    createParticles(x, y, color) {
+        for (let i = 0; i < 8; i++) {
+            this.particles.push({
+                x: x,
+                y: y,
+                vx: (Math.random() - 0.5) * 10,
+                vy: (Math.random() - 0.5) * 10,
+                life: 20,
+                color: color
+            });
+        }
+    }
+
+    handleGameOver() {
+        this.state = 'gameover';
+        audio.play('lose');
+        this.modalTitle.textContent = "嘭！游戏结束";
+        this.modalMsg.textContent = "小心炸弹哦！";
+        this.modalBtn.textContent = "重玩";
+        this.modal.classList.remove('hidden');
+        this.level = 0; // Reset Logic handle in start() or initLevel
+    }
+
+    handleWin() {
+        this.state = 'levelup';
+        audio.play('win');
+        this.modalTitle.textContent = "太棒了！";
+        this.modalMsg.textContent = `通过了第 ${this.level + 1} 关！`;
+        this.modalBtn.textContent = "下一关"; // Ensure button text is correct
+        this.modal.classList.remove('hidden');
+    }
+    
+    nextLevel() {
+        if (this.state === 'gameover') {
+            this.initLevel(this.level);
+        } else {
+            this.initLevel(this.level + 1);
+        }
+    }
+
+    draw() {
+        this.ctx.clearRect(0, 0, this.width, this.height);
+        
+        // Draw Basket
+        this.ctx.save();
+        this.ctx.translate(this.basket.x, this.basket.y);
+        
+        // Basket Body
+        this.ctx.fillStyle = '#8D6E63';
+        this.ctx.beginPath();
+        this.ctx.moveTo(-this.basket.width/2, 0);
+        this.ctx.lineTo(this.basket.width/2, 0);
+        this.ctx.lineTo(this.basket.width/2 - 10, this.basket.height);
+        this.ctx.lineTo(-this.basket.width/2 + 10, this.basket.height);
+        this.ctx.closePath();
+        this.ctx.fill();
+        
+        // Basket Rim
+        this.ctx.fillStyle = '#6D4C41';
+        this.ctx.fillRect(-this.basket.width/2 - 5, -5, this.basket.width + 10, 10);
+        
+        this.ctx.restore();
+
+        // Draw Apples
+        this.apples.forEach(apple => {
+            this.ctx.save();
+            this.ctx.translate(apple.x, apple.y);
+            
+            if (apple.type === 'apple') {
+                this.ctx.rotate(apple.rotation);
+                
+                // Apple Body
+                this.ctx.fillStyle = apple.color;
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, apple.radius, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Shine
+                this.ctx.fillStyle = 'rgba(255,255,255,0.3)';
+                this.ctx.beginPath();
+                this.ctx.arc(-8, -8, 8, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Stem
+                this.ctx.fillStyle = '#4E342E';
+                this.ctx.fillRect(-2, -apple.radius - 5, 4, 8);
+                
+                // Text
+                this.ctx.rotate(-apple.rotation); // Cancel rotation for text
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = 'bold 24px Fredoka';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(apple.value, 0, 0);
+                
+            } else if (apple.type === 'bomb') {
+                // Bomb Body
+                this.ctx.fillStyle = '#333';
+                this.ctx.beginPath();
+                this.ctx.arc(0, 0, apple.radius, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                // Shine
+                this.ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                this.ctx.beginPath();
+                this.ctx.arc(-6, -6, 6, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Fuse
+                this.ctx.beginPath();
+                this.ctx.strokeStyle = '#FFA000';
+                this.ctx.lineWidth = 3;
+                this.ctx.moveTo(0, -apple.radius);
+                this.ctx.quadraticCurveTo(5, -apple.radius - 10, 10, -apple.radius - 5);
+                this.ctx.stroke();
+
+                // Spark
+                if (Math.random() > 0.5) {
+                    this.ctx.fillStyle = '#FFD700';
+                    this.ctx.beginPath();
+                    this.ctx.arc(10, -apple.radius - 5, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
+                // Icon
+                this.ctx.fillStyle = 'white';
+                this.ctx.font = '20px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText("☠️", 0, 2);
+            }
+
+            this.ctx.restore();
+        });
+        
+        // Particles
+        this.particles.forEach(p => {
+            this.ctx.fillStyle = p.color;
+            this.ctx.beginPath();
+            this.ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+            this.ctx.fill();
+        });
     }
 }
 

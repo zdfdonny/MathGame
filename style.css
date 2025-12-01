@@ -199,7 +199,7 @@ body {
     gap: 10px;
 }
 
-#bubble-screen canvas {
+#bubble-screen canvas, #catcher-screen canvas {
     display: block;
     width: 100%;
     flex-grow: 1; 
@@ -225,6 +225,12 @@ body {
     padding: 20px;
     align-items: center;
     overflow-y: auto;
+}
+
+#catcher-screen {
+    background-color: #FBE9E7; /* 暖色调 */
+    justify-content: center;
+    align-items: center;
 }
 
 .memory-header {
@@ -376,22 +382,32 @@ body {
     display: none !important;
 }
 
-button.modal-btn, #bubble-modal-btn, #memory-next-btn {
-    background-color: var(--primary-color);
+button.modal-btn, #bubble-modal-btn, #memory-next-btn, #catcher-modal-btn {
+    background: linear-gradient(180deg, #FFD54F 0%, #FFB300 100%);
     color: white;
     border: none;
-    padding: 10px 30px;
-    font-size: 1.2rem;
+    padding: 15px 40px;
+    font-size: 1.5rem;
     font-family: var(--font-main);
+    font-weight: 800;
     border-radius: 50px;
     cursor: pointer;
-    margin-top: 20px;
-    box-shadow: 0 5px 0 #E67E22;
+    margin-top: 25px;
+    box-shadow: 0 6px 0 #E65100, 0 10px 20px rgba(0,0,0,0.2);
+    transition: all 0.1s ease;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.2);
+    min-width: 200px;
 }
 
-button:active {
+button.modal-btn:hover, #bubble-modal-btn:hover, #memory-next-btn:hover, #catcher-modal-btn:hover {
+    transform: translateY(-2px);
+    background: linear-gradient(180deg, #FFCA28 0%, #FFA000 100%);
+    box-shadow: 0 8px 0 #E65100, 0 15px 25px rgba(0,0,0,0.2);
+}
+
+button.modal-btn:active, #bubble-modal-btn:active, #memory-next-btn:active, #catcher-modal-btn:active {
     transform: translateY(4px);
-    box-shadow: none;
+    box-shadow: 0 2px 0 #E65100, 0 5px 10px rgba(0,0,0,0.2);
 }
 
 @keyframes popIn {
