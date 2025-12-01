@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>趣学数学乐园 - Math Fun Hub</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+    <!-- 1. 游戏中心 (Hub) -->
+    <div id="hub-screen" class="screen active">
+        <header class="hub-header">
+            <h1>趣学数学乐园</h1>
+            <p>选择一个游戏开始吧！</p>
+        </header>
+        <div class="game-list">
+            <div class="game-card" data-game="bubble">
+                <div class="card-icon">🫧</div>
+                <h2>泡泡龙</h2>
+                <p>发射泡泡，凑出答案！</p>
+                <div class="card-stats">最高分: <span id="hub-score-bubble">0</span></div>
+            </div>
+            <div class="game-card" data-game="memory">
+                <div class="card-icon">🎴</div>
+                <h2>翻翻乐</h2>
+                <p>翻开卡牌，寻找配对！</p>
+                <div class="card-stats">最高分: <span id="hub-score-memory">0</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 泡泡龙游戏容器 -->
+    <div id="bubble-screen" class="screen">
+        <button class="back-btn">🏠 返回</button>
+        
+        <div class="game-wrapper">
+            <!-- 顶部信息栏 (不再覆盖 Canvas) -->
+            <div class="game-header-bar">
+                <div class="score-box">
+                    <span>⭐</span>
+                    <span id="bubble-score">0</span>
+                </div>
+                <div class="level-box">
+                    Level <span id="bubble-level">1</span>
+                </div>
+            </div>
+            
+            <canvas id="game-canvas"></canvas>
+
+            <!-- 泡泡龙 结算弹窗 (依然覆盖) -->
+            <div id="bubble-modal" class="modal-overlay hidden">
+                <div class="modal-content">
+                    <h2 id="bubble-modal-title">太棒了!</h2>
+                    <p id="bubble-modal-message">准备好进入下一关了吗？</p>
+                    <button id="bubble-modal-btn">继续</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 记忆翻牌游戏容器 -->
+    <div id="memory-screen" class="screen">
+        <button class="back-btn">🏠 返回</button>
+        <div class="memory-header">
+            <div class="score-box">
+                <span>⭐</span>
+                <span id="memory-score">0</span>
+            </div>
+            <div class="level-box">
+                Level <span id="memory-level">1</span>
+            </div>
+        </div>
+        
+        <div class="memory-board" id="memory-board">
+            <!-- 卡牌由 JS 生成 -->
+        </div>
+
+        <!-- 记忆 结算弹窗 -->
+        <div id="memory-modal" class="modal-overlay hidden">
+            <div class="modal-content">
+                <h2>恭喜过关!</h2>
+                <p>你的记忆力真棒！</p>
+                <button id="memory-next-btn">下一关</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
