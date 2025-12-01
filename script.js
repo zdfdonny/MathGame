@@ -4,6 +4,8 @@ const COLORS = [
     '#FFEEAD', '#D4A5A5', '#9B59B6', '#3498DB', '#E67E22', '#2ECC71'
 ];
 
+const EMOJI_THEMES = ['🍎', '🍌', '🍇', '🍓', '🍒', '🐶', '🐱', '🐭', '🐹', '🐰', '⚽', '🏀', '⭐', '🎈', '🚗'];
+
 // --- AUDIO MANAGER ---
 class AudioManager {
     constructor() {
@@ -289,8 +291,11 @@ class MemoryGame {
             const a = Math.floor(Math.random() * (target + 1));
             const b = target - a;
             
-            const eqObj = { id: i, type: 'eq', content: `${a}+${b}`, matchId: i };
-            const ansObj = { id: i, type: 'ans', content: target, matchId: i };
+            // Random Emoji for this pair (Visual Cue)
+            const themeEmoji = EMOJI_THEMES[Math.floor(Math.random() * EMOJI_THEMES.length)];
+            
+            const eqObj = { id: i, type: 'eq', content: `${a}+${b}`, matchId: i, emoji: themeEmoji };
+            const ansObj = { id: i, type: 'ans', content: target, matchId: i, emoji: themeEmoji };
             
             deck.push(eqObj, ansObj);
         }
@@ -309,9 +314,31 @@ class MemoryGame {
             card.className = 'card';
             card.dataset.matchId = item.matchId;
             
+            let contentHtml = '';
+            if (item.type === 'ans') {
+                // Answer Card: Number + Quantity Emojis
+                let emojisHtml = '';
+                // Limit to max 10 emojis or handled by CSS grid/flex
+                // If number is large, emojis might need to be smaller. 
+                // Since max is 10, we can just repeat.
+                const emojiStr = item.emoji.repeat(item.content);
+                
+                contentHtml = `
+                    <div class="card-content-wrapper">
+                        <span class="card-main-text">${item.content}</span>
+                        <div class="card-visuals" title="${item.content} ${item.emoji}">${emojiStr}</div>
+                    </div>
+                `;
+            } else {
+                // Equation Card: Just Math
+                contentHtml = `<span class="card-main-text">${item.content}</span>`;
+            }
+
             card.innerHTML = `
                 <div class="card-inner">
-                    <div class="card-front type-${item.type}">${item.content}</div>
+                    <div class="card-front type-${item.type}">
+                        ${contentHtml}
+                    </div>
                     <div class="card-back">?</div>
                 </div>
             `;

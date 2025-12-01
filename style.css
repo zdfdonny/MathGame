@@ -126,6 +126,14 @@ body {
 .card-icon {
     font-size: 4rem;
     margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-icon svg {
+    width: 1em;
+    height: 1em;
 }
 
 .game-card h2 {
@@ -284,6 +292,8 @@ body {
     background-color: white;
     color: var(--text-color);
     transform: rotateY(180deg);
+    padding: 5px; /* 给内部内容留点边距 */
+    overflow: hidden;
 }
 
 .card-front.type-eq {
@@ -294,6 +304,41 @@ body {
 .card-front.type-ans {
     color: var(--secondary-color);
     background-color: #E0F7FA;
+}
+
+.card-content-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    width: 100%;
+}
+
+.card-main-text {
+    font-size: 2.5rem; /* 数字/算式大一点 */
+    line-height: 1;
+    margin-bottom: 5px;
+}
+
+.card-visuals {
+    font-size: 1rem;
+    line-height: 1.2;
+    word-break: break-all; /* 允许Emoji换行 */
+    text-align: center;
+    max-width: 90%;
+    letter-spacing: 2px;
+}
+
+/* Adjust for smaller screens */
+@media (max-width: 500px) {
+    .card-main-text {
+        font-size: 1.8rem;
+    }
+    .card-visuals {
+        font-size: 0.8rem;
+        letter-spacing: 1px;
+    }
 }
 
 .card-back {
