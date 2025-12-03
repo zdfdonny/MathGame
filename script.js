@@ -264,7 +264,7 @@ class MemoryGame {
     start() {
         this.score = 0;
         this.scoreEl.textContent = 0;
-        this.initLevel(1); 
+        this.initLevel(this.level); 
     }
 
     stop() {
@@ -285,8 +285,8 @@ class MemoryGame {
         // Difficulty Settings
         let pairCount = 0;
         if (level === 1) pairCount = 3;       // 6 cards
-        else if (level === 2) pairCount = 6;  // 12 cards
-        else if (level === 3) pairCount = 8;  // 16 cards
+        else if (level === 2) pairCount = 4;  // 8 cards
+        else if (level === 3) pairCount = 6;  // 12 cards
         else pairCount = 10;                  // 20 cards (Max)
 
         this.totalPairs = pairCount;
@@ -320,7 +320,7 @@ class MemoryGame {
         // Adjust grid columns based on count
         if (count <= 3) this.board.style.gridTemplateColumns = 'repeat(3, 1fr)';
         else if (count <= 6) this.board.style.gridTemplateColumns = 'repeat(4, 1fr)';
-        else this.board.style.gridTemplateColumns = 'repeat(4, 1fr)'; 
+        else this.board.style.gridTemplateColumns = 'repeat(5, 1fr)'; 
 
         deck.forEach(item => {
             const card = document.createElement('div');
@@ -477,7 +477,7 @@ class BubbleGame {
         this.score = 0; // Reset score for new game session
         this.scoreEl.textContent = 0;
         
-        this.initLevel(1);
+        this.initLevel(this.level);
         this.loop();
     }
 
@@ -504,7 +504,7 @@ class BubbleGame {
         
         this.cols = Math.floor(this.width / this.tileDiameter);
         this.rows = Math.floor(this.height / this.rowHeight);
-        this.offsetX = (this.width - (this.cols * this.tileDiameter)) / 2 + this.tileRadius;
+        this.offsetX = 0; //(this.width - (this.cols * this.tileDiameter)) / 2 + this.tileRadius;
     }
 
     initLevel(level) {
@@ -817,6 +817,15 @@ class BubbleGame {
         const sourceX = this.width / 2;
         const sourceY = this.height - 50;
         this.angle = Math.atan2(targetY - sourceY, targetX - sourceX);
+        if (this.angle > 0) {
+            this.angle = -this.angle;
+        }
+        if (this.angle <= -2.5) {
+            this.angle = -2.5;
+        } 
+        if (this.angle >= -0.5) {
+            this.angle = -0.5;
+        }
     }
 
     fire() {
@@ -856,7 +865,7 @@ class BubbleGame {
         this.modalMsg.textContent = "再试一次？";
         this.modalBtn.textContent = "重玩";
         this.modal.classList.remove('hidden');
-        this.level = 0; 
+        this.level = this.level - 1;
     }
 
     nextLevel() {
@@ -993,7 +1002,7 @@ class CatcherGame {
         this.resizeCanvas();
         this.score = 0;
         this.scoreEl.textContent = 0;
-        this.initLevel(1);
+        this.initLevel(this.level);
         this.loop();
     }
 
